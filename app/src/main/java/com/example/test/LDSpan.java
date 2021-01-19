@@ -3,6 +3,7 @@ package com.example.test;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
@@ -16,10 +17,10 @@ public class LDSpan extends DynamicDrawableSpan {
 
     private Bitmap bitmap;
 
-    public LDSpan(Context context, Person person) {
+    public LDSpan(Context context, Person person, float textSize) {
         this.context = context;
         this.person = person;
-        this.bitmap = getNameBitmap(person.getName());
+        this.bitmap = getNameBitmap(person.getName(), textSize);
     }
 
     @Override
@@ -49,23 +50,28 @@ public class LDSpan extends DynamicDrawableSpan {
      * @param name
      * @return
      */
-    private Bitmap getNameBitmap(String name) {
+    private Bitmap getNameBitmap(String name, float textSize) {
         /* 把@相关的字符串转换成bitmap 然后使用DynamicDrawableSpan加入输入框中 */
         Paint paint = new Paint();
         paint.setAntiAlias(true);
         //设置字体画笔的颜色
-        paint.setColor(context.getResources().getColor(R.color.color_blue));
+        paint.setColor(Color.RED);
         //设置字体的大小
-        paint.setTextSize(50);
-        Rect rect = new Rect();
-        paint.getTextBounds(name, 0, name.length(), rect);
+        paint.setTextSize(textSize);
+        paint.setTextAlign(Paint.Align.CENTER);
         // 获取字符串在屏幕上的长度
         int width = (int) (paint.measureText(name));
-        final Bitmap bmp = Bitmap.createBitmap(width, rect.height(),
+
+        Paint.FontMetrics fontMetrics = paint.getFontMetrics();
+        // 计算文字高度
+        float fontHeight = fontMetrics.bottom - fontMetrics.top;
+        final Bitmap bmp = Bitmap.createBitmap(width, (int) fontHeight,
                 Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bmp);
 //        canvas.drawColor(getResources().getColor(R.color.color_blue));
-        canvas.drawText(name, rect.left, rect.height() - rect.bottom, paint);
+        // 计算文字baseline
+        float textBaseY = fontHeight  - fontMetrics.bottom;
+        canvas.drawText(name, width >> 1, textBaseY, paint);
         return bmp;
     }
 

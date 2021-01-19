@@ -125,7 +125,7 @@ public class AtEditText extends AppCompatEditText {
         //2、遍历添加span
         for (Person p : personMap.values()) {
             Log.i(TAG, "==========每一个人的位置 start = " + p.getStartIndex() + "  end = " + p.getEndIndex() + "  id = " + p.getId() + "  name = " + p.getName() + "  edittext.tostring = " + getText().toString());
-            LDSpan dynamicDrawableSpan = new LDSpan(getContext(), p);
+            LDSpan dynamicDrawableSpan = new LDSpan(getContext(), p, getTextSize());
             spans.add(dynamicDrawableSpan);
 
             // 把取到的要@的人名，用DynamicDrawableSpan代替,使用这个span是为了防止在@人名中间插入任何字符
@@ -171,7 +171,7 @@ public class AtEditText extends AppCompatEditText {
         //2、遍历添加span
         for (Person p : personMap.values()) {
             Log.i(TAG, "==========每一个人的位置 start = " + p.getStartIndex() + "  end = " + p.getEndIndex() + "  id = " + p.getId() + "  name = " + p.getName() + "  edittext.tostring = " + getText().toString());
-            LDSpan dynamicDrawableSpan = new LDSpan(getContext(), p);
+            LDSpan dynamicDrawableSpan = new LDSpan(getContext(), p, getTextSize());
             spans.add(dynamicDrawableSpan);
 
             // 把取到的要@的人名，用DynamicDrawableSpan代替,使用这个span是为了防止在@人名中间插入任何字符
