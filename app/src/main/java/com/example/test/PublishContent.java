@@ -7,26 +7,36 @@ import java.util.List;
  */
 public class PublishContent {
     private String content;
-    private List<Person> personList;
+    private List<Person> personListAt;
+    private List<Person> personListTopic;
 
-    public PublishContent(String content, List<Person> personList) {
+    public PublishContent(String content, List<Person> personListAt, List<Person> personListTopic) {
         this.content = content;
-        this.personList = personList;
+        this.personListAt = personListAt;
+        this.personListTopic = personListTopic;
     }
 
     public String getContent() {
         return content;
     }
 
-    public List<Person> getPersonList() {
-        return personList;
+    public List<Person> getPersonListAt() {
+        return personListAt;
+    }
+
+    public List<Person> getPersonListTopic() {
+        return personListTopic;
     }
 
     public void setContent(String content) {
         this.content = content;
     }
 
-    public void setPersonList(List<Person> personList) {
-        this.personList = personList;
+    public void setPersonListAt(List<Person> personListAt) {
+        this.personListAt = personListAt;
+    }
+
+    public void setPersonListTopic(List<Person> personListTopic) {
+        this.personListTopic = personListTopic;
     }
 }

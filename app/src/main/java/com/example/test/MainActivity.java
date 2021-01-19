@@ -2,8 +2,6 @@ package com.example.test;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -11,9 +9,8 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import static com.example.test.AtEditText.CODE_PERSON;
-
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    private static final String TAG = "MyMainActivity";
     private AtEditText atEdittext;
     private Button sa;
 
@@ -32,7 +29,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void goToChooseContact(int requestCode) {
                 Intent intent = new Intent(MainActivity.this, PersonActivity.class);
-                MainActivity.this.startActivityForResult(intent, CODE_PERSON);
+                MainActivity.this.startActivityForResult(intent, requestCode);
             }
         });
 
@@ -42,7 +39,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.sa:
-                tvResult.setText(atEdittext.getPublishContent().getContent());
+                if (atEdittext.getPublishContent() != null) {
+                    if (atEdittext.getPublishContent().getPersonListAt() != null) {
+                        for (Person person: atEdittext.getPublishContent().getPersonListAt()) {
+                            Log.i(TAG, "at:" + person.getName());
+                        }
+                    }
+                    if (atEdittext.getPublishContent().getPersonListTopic() != null) {
+                        for (Person person: atEdittext.getPublishContent().getPersonListTopic()) {
+                            Log.i(TAG, "topic:" + person.getName());
+                        }
+                    }
+                    tvResult.setText(atEdittext.getPublishContent().getContent());
+                }
                 break;
         }
     }
@@ -52,7 +61,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        Log.i("LHD", "onActivityResult = " + data);
+        Log.i(TAG, "onActivityResult = " + data);
 
         atEdittext.handleResult(requestCode, resultCode, data);
     }

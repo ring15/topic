@@ -24,11 +24,13 @@ import java.util.Map;
 
 public class AtEditText extends AppCompatEditText {
 
-    private static final String BEFORE = "<!--#";
+    private static final String AT_BEFORE = "<!--@";
+    private static final String TOPIC_BEFORE = "<!--#";
     private static final String AFTER = "-->";
     private static final String TAG = "AtEditText";
 
     public static final int CODE_PERSON = 0x05;
+    public static final int CODE_TOPIC = 0x06;
     public static final String KEY_CID = "key_id";
     public static final String KEY_NAME = "key_name";
     List<DynamicDrawableSpan> spans = new ArrayList<>();
@@ -37,7 +39,10 @@ public class AtEditText extends AppCompatEditText {
      * 存储@的cid、name对,需要使用有序map
      */
     private Map<String, Person> personMap = new LinkedHashMap<>();
-    private int num = 0;
+    private int numAt = 0;
+    private int numTopic = 0;
+    private String typeAt = "@";
+    private String typeTopic = "#";
 
 
     public AtEditText(Context context) {
@@ -78,6 +83,10 @@ public class AtEditText extends AppCompatEditText {
                 if (onJumpListener != null) {
                     onJumpListener.goToChooseContact(CODE_PERSON);
                 }
+            } else if (source.toString().equalsIgnoreCase("#")) {
+                if (onJumpListener != null) {
+                    onJumpListener.goToChooseContact(CODE_TOPIC);
+                }
             }
             return source;
         }
@@ -89,12 +98,12 @@ public class AtEditText extends AppCompatEditText {
      * @param keyId   人员的id
      * @param nameStr 人员的名字
      */
-    private void setImageSpan(String keyId, String nameStr) {
+    private void setImageSpanAt(String keyId, String nameStr) {
         int startIndex = getSelectionStart();//光标的位置
         int endIndex = startIndex + nameStr.length();//字符结束的位置
 
-        String tag = BEFORE + num + AFTER;
-        num++;
+        String tag = typeAt + numAt;
+        numAt++;
 
         Person lBean = new Person();
         lBean.setId(keyId);
@@ -105,6 +114,52 @@ public class AtEditText extends AppCompatEditText {
 
         //插入要添加的字符，此处是为了给span占位
         getText().insert(startIndex, "@" + nameStr);
+
+        //要先插入，让其他span的位置更新后再获取
+        resetSpan(getText());
+        //最后把插入的span的信息再放到map中
+        personMap.put(lBean.getTag(), lBean);
+
+        //1、使用mEditText构造一个SpannableString
+        SpannableString ss = new SpannableString(getText().toString());
+        //2、遍历添加span
+        for (Person p : personMap.values()) {
+            Log.i(TAG, "==========每一个人的位置 start = " + p.getStartIndex() + "  end = " + p.getEndIndex() + "  id = " + p.getId() + "  name = " + p.getName() + "  edittext.tostring = " + getText().toString());
+            LDSpan dynamicDrawableSpan = new LDSpan(getContext(), p);
+            spans.add(dynamicDrawableSpan);
+
+            // 把取到的要@的人名，用DynamicDrawableSpan代替,使用这个span是为了防止在@人名中间插入任何字符
+            //注意start和end的范围是前闭后开即[start,end)所以end要加1
+            ss.setSpan(dynamicDrawableSpan, p.getStartIndex(), p.getEndIndex() + 1,
+                    SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+
+        setTextKeepState(ss);
+
+    }
+
+    /**
+     * 设置span
+     *
+     * @param keyId   人员的id
+     * @param nameStr 人员的名字
+     */
+    private void setImageSpanTopic(String keyId, String nameStr) {
+        int startIndex = getSelectionStart();//光标的位置
+        int endIndex = startIndex + nameStr.length() + 1;//字符结束的位置
+
+        String tag = typeTopic + numTopic;
+        numTopic++;
+
+        Person lBean = new Person();
+        lBean.setId(keyId);
+        lBean.setName("#" + nameStr + "#");
+        lBean.setStartIndex(startIndex);
+        lBean.setEndIndex(endIndex);
+        lBean.setTag(tag);
+
+        //插入要添加的字符，此处是为了给span占位
+        getText().insert(startIndex, "#" + nameStr + "#");
 
         //要先插入，让其他span的位置更新后再获取
         resetSpan(getText());
@@ -164,7 +219,7 @@ public class AtEditText extends AppCompatEditText {
     }
 
     public void handleResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CODE_PERSON && resultCode == Activity.RESULT_OK) {
+        if (resultCode == Activity.RESULT_OK) {
 
             String keyId = data.getStringExtra(KEY_CID);
 
@@ -187,7 +242,13 @@ public class AtEditText extends AppCompatEditText {
 //                return;
 //            } else {
             //2、没有添加过则构造span，添加到Edittext中
-            setImageSpan(keyId, nameStr);
+            if (requestCode == CODE_PERSON) {
+                setImageSpanAt(keyId, nameStr);
+            } else {
+                if (requestCode == CODE_TOPIC) {
+                    setImageSpanTopic(keyId, nameStr);
+                }
+            }
 //            }
         }
     }
@@ -200,12 +261,13 @@ public class AtEditText extends AppCompatEditText {
         //获取全部字符
         StringBuilder text = new StringBuilder(getText().toString());
         //上传的用户信息的数组
-        List<Person> personList = new ArrayList<>();
+        List<Person> personListAt = new ArrayList<>();
+        List<Person> personListTopic = new ArrayList<>();
         //获取所有有样式的字符
         LDSpan[] spans = getText().getSpans(0, getText().length(), LDSpan.class);
         //如果没有span，即没有at内容，直接返回转义后的字符串
         if (spans == null || spans.length <= 0) {
-            return new PublishContent(htmlEncode(text.toString()), new ArrayList<Person>());
+            return new PublishContent(htmlEncode(text.toString()), new ArrayList<Person>(), new ArrayList<Person>());
         }
         //保存span样式和下标的hashmap
         HashMap<Integer, LDSpan> spanHashMap = new HashMap<>();
@@ -229,10 +291,18 @@ public class AtEditText extends AppCompatEditText {
             if (span == null) continue;
             //根据span获取用户信息，并保存
             Person p = span.getPerson();
-            //用来替换@信息的标签
-            String tag = BEFORE + personList.size() + AFTER;
-            //保存用户信息（先获取标签再保存，保证标签从0开始）
-            personList.add(p);
+            String tag = "";
+            if (p.getTag().contains(typeAt)) {
+                //用来替换@信息的标签
+                tag = AT_BEFORE + personListAt.size() + AFTER;
+                //保存用户信息（先获取标签再保存，保证标签从0开始）
+                personListAt.add(p);
+            } else {
+                //用来替换#信息的标签
+                tag = TOPIC_BEFORE + personListTopic.size() + AFTER;
+                //保存用户信息（先获取标签再保存，保证标签从0开始）
+                personListTopic.add(p);
+            }
             //获取上次的end位置到本次span的内容
             String first = text.substring(startIndex, getText().getSpanStart(span));
             //获取本次span之后的所有内容（可能包含下一个span）
@@ -242,7 +312,7 @@ public class AtEditText extends AppCompatEditText {
             //span之前的内容可以保证，只有用户输入内容，不包括@信息
             PublishPostContent content1 = new PublishPostContent(first, -1, -1);
             //插入标签
-            PublishPostContent content2 = new PublishPostContent(tag, 1, -1);
+            PublishPostContent content2 = new PublishPostContent(tag, p.getTag().contains(typeAt) ? 1 : 2, -1);
             contents.add(content1);
             contents.add(content2);
             if (i == starts.size() - 1) {
@@ -253,7 +323,7 @@ public class AtEditText extends AppCompatEditText {
         }
         text = new StringBuilder();
         for (PublishPostContent content : contents) {
-            if (content.getType() == 1) {
+            if (content.getType() == 1 || content.getType() == 2) {
                 //如果是at内容，就不转义
                 text.append(content.getContent());
             } else {
@@ -261,7 +331,7 @@ public class AtEditText extends AppCompatEditText {
                 text.append(htmlEncode(content.getContent()));
             }
         }
-        PublishContent content = new PublishContent(text.toString(), personList);
+        PublishContent content = new PublishContent(text.toString(), personListAt, personListTopic);
         return content;
     }
 
