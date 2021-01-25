@@ -9,11 +9,17 @@ public class PublishContent {
     private String content;
     private List<Person> personListAt;
     private List<Person> personListTopic;
+    private List<String> topicList;
 
-    public PublishContent(String content, List<Person> personListAt, List<Person> personListTopic) {
+    public PublishContent(String content, List<Person> personListAt) {
         this.content = content;
         this.personListAt = personListAt;
-        this.personListTopic = personListTopic;
+    }
+
+    public PublishContent(String content, List<Person> personListAt, List<String> topicList) {
+        this.content = content;
+        this.personListAt = personListAt;
+        this.topicList = topicList;
     }
 
     public String getContent() {
@@ -28,6 +34,10 @@ public class PublishContent {
         return personListTopic;
     }
 
+    public List<String> getTopicList() {
+        return topicList;
+    }
+
     public void setContent(String content) {
         this.content = content;
     }
@@ -38,5 +48,9 @@ public class PublishContent {
 
     public void setPersonListTopic(List<Person> personListTopic) {
         this.personListTopic = personListTopic;
+    }
+
+    public void setTopicList(List<String> topicList) {
+        this.topicList = topicList;
     }
 }

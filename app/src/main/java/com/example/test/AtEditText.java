@@ -3,12 +3,14 @@ package com.example.test;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.DynamicDrawableSpan;
+import android.text.style.ForegroundColorSpan;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.widget.Toast;
@@ -39,6 +41,7 @@ public class AtEditText extends AppCompatEditText {
      * 存储@的cid、name对,需要使用有序map
      */
     private Map<String, Person> personMap = new LinkedHashMap<>();
+    private Map<Integer, Topic> topicMap = new LinkedHashMap<>();
     private int numAt = 0;
     private int numTopic = 0;
     private String typeAt = "@";
@@ -92,6 +95,67 @@ public class AtEditText extends AppCompatEditText {
         }
     }
 
+    public void textChanged(Editable editable) {
+        topicMap.clear();
+        getTopicList();
+        if (topicMap != null) {
+            setTopic(editable);
+        }
+    }
+
+    private void setTopic(Editable editable) {
+        ForegroundColorSpan normal = new ForegroundColorSpan(Color.parseColor("#0C0C0E"));
+        editable.setSpan(normal, 0, editable.length(),
+                SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
+        for (Topic topic : topicMap.values()) {
+            ForegroundColorSpan foregroundColorSpan = new ForegroundColorSpan(Color.parseColor("#ff0000"));
+            editable.setSpan(foregroundColorSpan, topic.getPosition(), topic.getPosition() + topic.getTopic().length(),
+                    SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+    }
+
+    private void getTopicList() {
+        if (getText() == null || getText().toString().isEmpty()) {
+            return;
+        }
+        String str = getText().toString();
+        int lastPosition = str.lastIndexOf("#");
+        int x = 0;
+        ArrayList<Integer> indexList = new ArrayList<>();
+        for (int i = 0; i < str.length(); i++) {
+            int position = str.indexOf("#", x);
+            indexList.add(position);
+            if (position == lastPosition) {
+                break;
+            }
+            x = position + 1;
+        }
+        int begin = 0;
+        boolean isStart = true;
+        for (int i = 0; i < indexList.size(); i++) {
+            int index = indexList.get(i);
+            if (!isStart && index - begin > 1) {
+                LDSpan[] spans = getText().getSpans(begin, index + 1, LDSpan.class);
+                if (spans != null && spans.length > 0) {
+                    begin = index;
+                    isStart = false;
+                } else {
+                    String s = str.substring(begin, index + 1);
+                    String tag = typeTopic + numTopic;
+                    numTopic++;
+                    Topic topic = new Topic(s, tag, begin);
+                    topicMap.put(begin, topic);
+                    isStart = true;
+                    begin = index + 1;
+                }
+            } else {
+                isStart = false;
+                begin = index;
+            }
+        }
+
+    }
+
     /**
      * 设置span
      *
@@ -137,52 +201,52 @@ public class AtEditText extends AppCompatEditText {
         setTextKeepState(ss);
 
     }
-
-    /**
-     * 设置span
-     *
-     * @param keyId   人员的id
-     * @param nameStr 人员的名字
-     */
-    private void setImageSpanTopic(String keyId, String nameStr) {
-        int startIndex = getSelectionStart();//光标的位置
-        int endIndex = startIndex + nameStr.length() + 1;//字符结束的位置
-
-        String tag = typeTopic + numTopic;
-        numTopic++;
-
-        Person lBean = new Person();
-        lBean.setId(keyId);
-        lBean.setName("#" + nameStr + "#");
-        lBean.setStartIndex(startIndex);
-        lBean.setEndIndex(endIndex);
-        lBean.setTag(tag);
-
-        //插入要添加的字符，此处是为了给span占位
-        getText().insert(startIndex, "#" + nameStr + "#");
-
-        //要先插入，让其他span的位置更新后再获取
-        resetSpan(getText());
-        //最后把插入的span的信息再放到map中
-        personMap.put(lBean.getTag(), lBean);
-
-        //1、使用mEditText构造一个SpannableString
-        SpannableString ss = new SpannableString(getText().toString());
-        //2、遍历添加span
-        for (Person p : personMap.values()) {
-            Log.i(TAG, "==========每一个人的位置 start = " + p.getStartIndex() + "  end = " + p.getEndIndex() + "  id = " + p.getId() + "  name = " + p.getName() + "  edittext.tostring = " + getText().toString());
-            LDSpan dynamicDrawableSpan = new LDSpan(getContext(), p, getTextSize());
-            spans.add(dynamicDrawableSpan);
-
-            // 把取到的要@的人名，用DynamicDrawableSpan代替,使用这个span是为了防止在@人名中间插入任何字符
-            //注意start和end的范围是前闭后开即[start,end)所以end要加1
-            ss.setSpan(dynamicDrawableSpan, p.getStartIndex(), p.getEndIndex() + 1,
-                    SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-
-        setTextKeepState(ss);
-
-    }
+//
+//    /**
+//     * 设置span
+//     *
+//     * @param keyId   人员的id
+//     * @param nameStr 人员的名字
+//     */
+//    private void setImageSpanTopic(String keyId, String nameStr) {
+//        int startIndex = getSelectionStart();//光标的位置
+//        int endIndex = startIndex + nameStr.length() + 1;//字符结束的位置
+//
+//        String tag = typeTopic + numTopic;
+//        numTopic++;
+//
+//        Person lBean = new Person();
+//        lBean.setId(keyId);
+//        lBean.setName("#" + nameStr + "#");
+//        lBean.setStartIndex(startIndex);
+//        lBean.setEndIndex(endIndex);
+//        lBean.setTag(tag);
+//
+//        //插入要添加的字符，此处是为了给span占位
+//        getText().insert(startIndex, "#" + nameStr + "#");
+//
+//        //要先插入，让其他span的位置更新后再获取
+//        resetSpan(getText());
+//        //最后把插入的span的信息再放到map中
+//        personMap.put(lBean.getTag(), lBean);
+//
+//        //1、使用mEditText构造一个SpannableString
+//        SpannableString ss = new SpannableString(getText().toString());
+//        //2、遍历添加span
+//        for (Person p : personMap.values()) {
+//            Log.i(TAG, "==========每一个人的位置 start = " + p.getStartIndex() + "  end = " + p.getEndIndex() + "  id = " + p.getId() + "  name = " + p.getName() + "  edittext.tostring = " + getText().toString());
+//            LDSpan dynamicDrawableSpan = new LDSpan(getContext(), p, getTextSize());
+//            spans.add(dynamicDrawableSpan);
+//
+//            // 把取到的要@的人名，用DynamicDrawableSpan代替,使用这个span是为了防止在@人名中间插入任何字符
+//            //注意start和end的范围是前闭后开即[start,end)所以end要加1
+//            ss.setSpan(dynamicDrawableSpan, p.getStartIndex(), p.getEndIndex() + 1,
+//                    SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
+//        }
+//
+//        setTextKeepState(ss);
+//
+//    }
 
     /**
      * 重新计算每一个span的位置重置map
@@ -246,7 +310,9 @@ public class AtEditText extends AppCompatEditText {
                 setImageSpanAt(keyId, nameStr);
             } else {
                 if (requestCode == CODE_TOPIC) {
-                    setImageSpanTopic(keyId, nameStr);
+                    int startIndex = getSelectionStart();//光标的位置
+                    //插入要添加的字符，此处是为了给span占位
+                    getText().insert(startIndex, "#" + nameStr + "#");
                 }
             }
 //            }
@@ -254,20 +320,32 @@ public class AtEditText extends AppCompatEditText {
     }
 
 
-    //上传需要的内容
     public PublishContent getPublishContent() {
         if (getText() == null) return null;
-
+        topicList.clear();
         //获取全部字符
         StringBuilder text = new StringBuilder(getText().toString());
         //上传的用户信息的数组
         List<Person> personListAt = new ArrayList<>();
-        List<Person> personListTopic = new ArrayList<>();
+//        List<Person> personListTopic = new ArrayList<>();
         //获取所有有样式的字符
         LDSpan[] spans = getText().getSpans(0, getText().length(), LDSpan.class);
         //如果没有span，即没有at内容，直接返回转义后的字符串
         if (spans == null || spans.length <= 0) {
-            return new PublishContent(htmlEncode(text.toString()), new ArrayList<Person>(), new ArrayList<Person>());
+            List<PublishPostContent> contents = new ArrayList<>();
+            ArrayList<PublishPostContent> contents2 = getTopicList(text.toString());
+            contents.addAll(contents2);
+            text = new StringBuilder();
+            for (PublishPostContent content : contents) {
+                if (content.getType() == 1 || content.getType() == 2) {
+                    //如果是at内容，就不转义
+                    text.append(content.getContent());
+                } else {
+                    //用户输入内容就转义
+                    text.append(htmlEncode(content.getContent()));
+                }
+            }
+            return new PublishContent(text.toString(), personListAt, topicList);
         }
         //保存span样式和下标的hashmap
         HashMap<Integer, LDSpan> spanHashMap = new HashMap<>();
@@ -297,12 +375,13 @@ public class AtEditText extends AppCompatEditText {
                 tag = AT_BEFORE + personListAt.size() + AFTER;
                 //保存用户信息（先获取标签再保存，保证标签从0开始）
                 personListAt.add(p);
-            } else {
-                //用来替换#信息的标签
-                tag = TOPIC_BEFORE + personListTopic.size() + AFTER;
-                //保存用户信息（先获取标签再保存，保证标签从0开始）
-                personListTopic.add(p);
             }
+//            else {
+//                //用来替换#信息的标签
+//                tag = TOPIC_BEFORE + personListTopic.size() + AFTER;
+//                //保存用户信息（先获取标签再保存，保证标签从0开始）
+//                personListTopic.add(p);
+//            }
             //获取上次的end位置到本次span的内容
             String first = text.substring(startIndex, getText().getSpanStart(span));
             //获取本次span之后的所有内容（可能包含下一个span）
@@ -310,15 +389,18 @@ public class AtEditText extends AppCompatEditText {
             //更新span的end位置
             startIndex = getText().getSpanEnd(span);
             //span之前的内容可以保证，只有用户输入内容，不包括@信息
-            PublishPostContent content1 = new PublishPostContent(first, -1, -1);
+//            PublishPostContent content1 = new PublishPostContent(first, -1, -1);
+            ArrayList<PublishPostContent> contents1 = getTopicList(first);
             //插入标签
-            PublishPostContent content2 = new PublishPostContent(tag, p.getTag().contains(typeAt) ? 1 : 2, -1);
-            contents.add(content1);
+            PublishPostContent content2 = new PublishPostContent(tag, 1, -1);
+            contents.addAll(contents1);
             contents.add(content2);
             if (i == starts.size() - 1) {
                 //如果span是最后一个了，也就是second的内容最多只包含用户输入内容，就将最后内容也插入到数组中
-                PublishPostContent content3 = new PublishPostContent(second, -1, -1);
-                contents.add(content3);
+//                PublishPostContent content3 = new PublishPostContent(second, -1, -1);
+                ArrayList<PublishPostContent> contents2 = getTopicList(second);
+                contents.addAll(contents2);
+//                contents.add(content3);
             }
         }
         text = new StringBuilder();
@@ -331,8 +413,52 @@ public class AtEditText extends AppCompatEditText {
                 text.append(htmlEncode(content.getContent()));
             }
         }
-        PublishContent content = new PublishContent(text.toString(), personListAt, personListTopic);
+        PublishContent content = new PublishContent(text.toString(), personListAt, topicList);
         return content;
+    }
+
+    private ArrayList<String> topicList = new ArrayList<>();
+
+    private ArrayList<PublishPostContent> getTopicList(String text) {
+        if (text == null || text.isEmpty()) {
+            return new ArrayList<>();
+        }
+        ArrayList<PublishPostContent> publishPostContents = new ArrayList<>();
+        int lastPosition = text.lastIndexOf("#");
+        int x = 0;
+        ArrayList<Integer> indexList = new ArrayList<>();
+        for (int i = 0; i < text.length(); i++) {
+            int position = text.indexOf("#", x);
+            indexList.add(position);
+            if (position == lastPosition) {
+                break;
+            }
+            x = position + 1;
+        }
+        int begin = 0;
+        boolean isStart = true;
+        for (int i = 0; i < indexList.size(); i++) {
+            int index = indexList.get(i);
+            if (!isStart && index - begin > 1) {
+                String s = text.substring(begin, index + 1);
+                PublishPostContent content = new PublishPostContent(TOPIC_BEFORE + topicList.size() + AFTER, 2, -1);
+                publishPostContents.add(content);
+                topicList.add(s);
+                isStart = true;
+                begin = index + 1;
+            } else {
+                String s = text.substring(begin, index);
+                PublishPostContent content = new PublishPostContent(s, -1, -1);
+                publishPostContents.add(content);
+                isStart = false;
+                begin = index;
+            }
+        }
+        String s = text.substring(begin);
+        PublishPostContent content = new PublishPostContent(s, -1, -1);
+        publishPostContents.add(content);
+
+        return publishPostContents;
     }
 
     /**

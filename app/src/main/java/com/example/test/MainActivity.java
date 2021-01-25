@@ -2,6 +2,8 @@ package com.example.test;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -33,6 +35,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
+        TextWatcher textWatcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                Log.i("test", "test");
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                Log.i("test", "test");
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                Log.i("test", "test");
+                atEdittext.textChanged(s);
+            }
+        };
+
+        atEdittext.addTextChangedListener(textWatcher);
+
     }
 
     @Override
@@ -45,9 +67,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             Log.i(TAG, "at:" + person.getName());
                         }
                     }
-                    if (atEdittext.getPublishContent().getPersonListTopic() != null) {
-                        for (Person person: atEdittext.getPublishContent().getPersonListTopic()) {
-                            Log.i(TAG, "topic:" + person.getName());
+//                    if (atEdittext.getPublishContent().getPersonListTopic() != null) {
+//                        for (Person person: atEdittext.getPublishContent().getPersonListTopic()) {
+//                            Log.i(TAG, "topic:" + person.getName());
+//                        }
+//                    }
+                    if (atEdittext.getPublishContent().getTopicList() != null) {
+                        for (String topic: atEdittext.getPublishContent().getTopicList()) {
+                            Log.i(TAG, "topic:" + topic);
                         }
                     }
                     tvResult.setText(atEdittext.getPublishContent().getContent());
